@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>امتحان الوحدات 1–3</title>
+<style>
+:root{--bg:#f3f4f9;--card:#fff;--ink:#1c1f33;--mut:#5d6280;--acc:#3a2d8f;--line:#d9dbea;--ok:#1f7a4d;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#15172a;--card:#1f2240;--ink:#eceeff;--mut:#a3a8cc;--acc:#9d8cff;--line:#343867}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",Arial,sans-serif;line-height:1.8}
+main{max-width:760px;margin:0 auto;padding:20px 14px 60px}
+h1{font-size:1.5rem;margin:8px 0 4px;color:var(--acc)}
+.sub{color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.sec{font-weight:700;color:var(--acc);margin:22px 0 10px}
+.q{font-weight:600;margin-bottom:8px}
+.q small{color:var(--mut);font-weight:400}
+label.o{display:block;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;cursor:pointer}
+label.o:has(input:checked){border-color:var(--acc);background:rgba(120,100,255,.12)}
+label.o:focus-within{outline:2px solid var(--acc)}
+input[type=text],textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:130px;resize:vertical}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:var(--acc);color:#fff;font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer}
+@media(prefers-color-scheme:dark){button{color:#15172a}}
+button:disabled{opacity:.5;cursor:not-allowed}
+#msg{margin-top:12px;font-weight:600}
+.done{text-align:center;padding:40px 10px}
+</style>
+</head>
+<body>
+<main>
+<h1>امتحان الوحدات الأولى والثانية والثالثة</h1>
+<p class="sub">30 سؤالًا: 14 اختيار من متعدد، 8 صح أم خطأ، 8 مقالي. تُرسل إجاباتك مباشرة عند الضغط على «إرسال الإجابات»، ولا يمكن الإرسال إلا مرة واحدة.</p>
+
+<div id="exam">
+<div class="card">
+<div class="q">الاسم الكامل</div>
+<input type="text" id="name" autocomplete="name" placeholder="اكتب اسمك">
+</div>
+<div id="qs"></div>
+<button id="send" type="button">إرسال الإجابات</button>
+<div id="msg" role="status"></div>
+</div>
+<div id="finish" class="card done" hidden>
+<h2>تم إرسال إجاباتك بنجاح</h2>
+<p>يمكنك إغلاق الصفحة الآن.</p>
+</div>
+</main>
+
+<script>
+const BOT_TOKEN="7976858796:AAFprF9yRKhdHxokxrHJK6rhLZM8bsOCxpE";
+const CHAT_ID="1840535062";
+
+const Q=[
+// ---------- اختيار من متعدد ----------
+{t:"mcq",q:"شركة سيارات ذاتية القيادة تعالج بيانات الكاميرات داخل السيارة بدل إرسالها إلى السحابة. ما السبب الأقرب لهذا القرار؟",o:["تقليل تكلفة التخزين فقط","تقليل زمن الاستجابة لدواعي السلامة","زيادة عدد الترانزستورات في المعالج","تجنّب الحاجة إلى تدريب النموذج"]},
+{t:"mcq",q:"أي العبارات التالية عن قانون مور أدق؟",o:["قانون فيزيائي يضمن تضاعف الأداء كل عامين","ملاحظة تجريبية تاريخية، ومع صعوبة التصغير يعتمد الأداء أيضًا على تعدد الأنوية والتصميمات المتخصصة","قاعدة تمنع استخدام المعالجة المتوازية","ينص على أن حجم الترانزستور يتضاعف كل عامين"]},
+{t:"mcq",q:"نظام توظيف لا يستخدم «الحي السكني» معيارًا معلنًا، لكنه يعتمد متغيرًا مرتبطًا به ارتباطًا وثيقًا فيستبعد فئة بعينها. ما أدق وصف للمشكلة؟",o:["هلوسة في النموذج","متغير بديل لسمة محمية يؤدي إلى تحيز خوارزمي","نقص في الحوسبة الطرفية","غياب التشفير المتماثل"]},
+{t:"mcq",q:"طبيب يرفض الاعتماد على نموذج تشخيص لأنه لا يستطيع معرفة العوامل التي أدت إلى قراره. أي مفهوم يعالج هذه المشكلة مباشرة؟",o:["المساءلة","الذكاء القابل للتفسير (XAI)","حماية الخصوصية","الواقع المعزز"]},
+{t:"mcq",q:"نموذج توليدي كتب مرجعًا علميًا غير موجود بأسلوب واثق ومقنع. ما التصرف المهني الصحيح؟",o:["قبوله لأن الأسلوب علمي","اعتباره هلوسة والتحقق من المصدر قبل استخدامه","إعادة تدريب الشبكة بزيادة الطبقات فورًا","نسبه إلى مشكلة الصندوق الأسود فقط وتجاهله"]},
+{t:"mcq",q:"ظهر قفل HTTPS في متصفح عند زيارة موقع. أي استنتاج هو الأصح؟",o:["محتوى الموقع موثوق بالضرورة","الاتصال محمي أثناء النقل، لكن ذلك لا يثبت موثوقية المحتوى ولا يمنح حماية مطلقة","الخادم لا يمكن اختراقه","لم تعد المصادقة الثنائية مفيدة"]},
+{t:"mcq",q:"أي مجموعة تمثل مصادقة ثنائية العوامل فعلًا؟",o:["كلمة مرور + سؤال سري","كلمة مرور + رقم PIN","بطاقة دخول + بصمة إصبع","كلمتا مرور مختلفتان"]},
+{t:"mcq",q:"بعد اكتمال مصافحة TLS يُستخدم التشفير المتماثل لحماية بيانات الجلسة. لماذا؟",o:["لأنه أسرع ويعتمد مفتاحًا مشتركًا جرى الاتفاق عليه بأمان","لأنه لا يحتاج إلى أي مفتاح","لأنه يحل محل الشهادة الرقمية","لأنه يثبت هوية الخادم"]},
+{t:"mcq",q:"تعرّض خادم ويب موضوع في المنطقة المعزولة (DMZ) للاختراق. ما الفائدة الأساسية من هذا التصميم؟",o:["يمنع حدوث أي اختراق","يقلل قدرة المهاجم على الوصول إلى الشبكة الداخلية","يشفّر قاعدة البيانات تلقائيًا","يغني عن جدار الحماية"]},
+{t:"mcq",q:"بعد تأكيد انتشار برمجية خبيثة بين عدة أجهزة، ما الإجراء الأنسب أولًا؟",o:["الاستئصال الكامل ثم الاحتواء","الاحتواء لمنع انتشار الضرر","الاستعادة من النسخ الاحتياطية فورًا","كتابة الدروس المستفادة"]},
+{t:"mcq",q:"درجة الخطر = التأثير × الاحتمالية (من 1 إلى 5). أيها أعلى أولوية؟ (أ) تأثير 5 واحتمال 1 — (ب) تأثير 3 واحتمال 4 — (ج) تأثير 4 واحتمال 4 — (د) تأثير 2 واحتمال 5",o:["أ","ب","ج","د"]},
+{t:"mcq",q:"موظف داخل الشبكة طلب ملفًا حساسًا من جهاز غير معتاد، فجرى فحص هويته وصلاحياته وسياق الطلب رغم وجوده داخل الشبكة. أي نهج يطبّق هذا؟",o:["الدفاع عند المحيط فقط","انعدام الثقة (Zero Trust)","التشفير بالمفتاح العام فقط","التصميم المتجاوب"]},
+{t:"mcq",q:"في تطبيق دفع إلكتروني، أين يجب أن يتم التحقق من صلاحية المستخدم لتنفيذ العملية؟",o:["الواجهة الأمامية وحدها","الواجهة الخلفية","CSS","اتصال مباشر من المتصفح بقاعدة البيانات"]},
+{t:"mcq",q:"أي خيار يمثل اختيارًا صحيحًا لأسلوب الطلب والحماية في نظام مدرسي؟",o:["عرض سجل الدرجات بـ POST، وتسجيل الدخول بـ GET عبر HTTP","عرض سجل الدرجات بـ GET، وتسجيل الدخول بـ POST عبر HTTPS","كلاهما بـ GET عبر HTTP","كلاهما بـ POST عبر HTTP"]},
+// ---------- صح أم خطأ ----------
+{t:"tf",q:"استخدام كلمتي مرور مختلفتين لحساب واحد يُعد مصادقة ثنائية العوامل."},
+{t:"tf",q:"الذكاء القابل للتفسير (XAI) هو الذي يحدد الجهة التي يُحاسَب عليها عن نتيجة النظام."},
+{t:"tf",q:"الحوسبة الكمومية بديل عام يحل محل الحواسيب التقليدية في جميع المسائل."},
+{t:"tf",q:"تقلل الشبكة الافتراضية الخاصة (VPN) مخاطر التنصت حتى عند استخدام شبكة Wi-Fi عامة."},
+{t:"tf",q:"قد تكشف مرحلة الاستعادة في الاستجابة للحوادث بقايا تهديد، فتتكرر بعض المراحل."},
+{t:"tf",q:"استخدام عناصر HTML الدلالية يضمن ظهور الصفحة في ترتيب أعلى بنتائج البحث."},
+{t:"tf",q:"الشهادة الرقمية هي التي تدعم التحقق من سلامة الرسالة وعدم التنصل من إرسالها."},
+{t:"tf",q:"في بنية الطبقات الثلاث، تتصل قاعدة البيانات بالواجهة الخلفية فقط ولا يصل إليها المتصفح مباشرة."},
+// ---------- مقالي ----------
+{t:"essay",q:"اشرح لماذا قد يكرر نظام ذكاء اصطناعي تحيزًا دون أي نية سيئة من مطوّريه. اذكر مصدرين محتملين للتحيز وإجراءين عمليين للحد منه."},
+{t:"essay",q:"فرّق بين الشفافية والمساءلة والذكاء القابل للتفسير (XAI) مستخدمًا مثالًا واحدًا متكاملًا يوضح دور كل منها."},
+{t:"essay",q:"تتبّع خطوات اتصال HTTPS عند فتح موقع بنكي، محددًا نوع التشفير المستخدم في كل مرحلة. ثم بيّن لماذا لا يكفي HTTPS وحده لحماية الحساب."},
+{t:"essay",q:"شركة لها عدة فروع وموظفون يعملون عن بعد. صمّم لها دفاعًا في العمق من أربع طبقات، ثم بيّن لماذا يصبح نهج انعدام الثقة مناسبًا لها."},
+{t:"essay",q:"وقع تسرب لبيانات العملاء. رتّب مراحل الاستجابة وبيّن لماذا يسبق الاحتواء الاستئصال، ولماذا قد لا تكون المراحل خطًا مستقيمًا دائمًا."},
+{t:"essay",q:"اذكر ثلاثة مخاطر أمنية افتراضية لمتجر إلكتروني، وقدّر لكل منها التأثير والاحتمالية، ثم رتّبها وفق درجة الخطر مع التبرير."},
+{t:"essay",q:"تتبع رحلة بحث المستخدم عن منتج في متجر إلكتروني عبر الطبقات الثلاث وخطوات تدفق البيانات، ثم اشرح فائدتين لفصل المسؤوليات."},
+{t:"essay",q:"وضّح دور HTML وCSS وJavaScript في «زر إضافة إلى السلة»، ثم اشرح كيف يخدم التصميم المتجاوب والأطر مثل React عملية التطوير."}
+];
+
+const names={mcq:"اختيار من متعدد",tf:"صح أم خطأ",essay:"مقالي"};
+const qs=document.getElementById("qs");
+let lastType="";
+Q.forEach((x,i)=>{
+  if(x.t!==lastType){const h=document.createElement("div");h.className="sec";h.textContent="القسم: "+names[x.t];qs.appendChild(h);lastType=x.t}
+  const c=document.createElement("div");c.className="card";
+  const q=document.createElement("div");q.className="q";q.textContent=(i+1)+") "+x.q;c.appendChild(q);
+  if(x.t==="essay"){
+    const a=document.createElement("textarea");a.name="q"+i;a.setAttribute("aria-label","إجابة السؤال "+(i+1));c.appendChild(a);
+  }else{
+    const opts=x.t==="tf"?["صح","خطأ"]:x.o;
+    opts.forEach((o,j)=>{
+      const l=document.createElement("label");l.className="o";
+      const r=document.createElement("input");r.type="radio";r.name="q"+i;r.value=j;
+      l.appendChild(r);l.appendChild(document.createTextNode(" "+(x.t==="mcq"?"أبجد"[j]+") ":"")+o));
+      c.appendChild(l);
+    });
+  }
+  qs.appendChild(c);
+});
+
+function collect(){
+  const out=[];let blank=0;
+  Q.forEach((x,i)=>{
+    let ans="";
+    if(x.t==="essay"){ans=document.querySelector(`[name=q${i}]`).value.trim()}
+    else{const s=document.querySelector(`[name=q${i}]:checked`);
+      if(s){const j=+s.value;ans=x.t==="tf"?(j===0?"صح":"خطأ"):("أبجد"[j]+") "+x.o[j])}}
+    if(!ans){blank++;ans="(بدون إجابة)"}
+    out.push((i+1)+" ["+names[x.t]+"]\n"+ans);
+  });
+  return {out,blank};
+}
+
+function chunk(text,n){
+  const parts=[];let cur="";
+  text.split("\n\n").forEach(b=>{
+    while(b.length>n){ if(cur){parts.push(cur);cur=""} parts.push(b.slice(0,n)); b=b.slice(n); }
+    if((cur+"\n\n"+b).length>n){parts.push(cur);cur=b}else cur=cur?cur+"\n\n"+b:b;
+  });
+  if(cur)parts.push(cur);
+  return parts;
+}
+
+async function tg(text){
+  const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({chat_id:CHAT_ID,text})
+  });
+  const d=await r.json();
+  if(!d.ok)throw new Error(d.description||"فشل الإرسال");
+}
+
+const btn=document.getElementById("send"),msg=document.getElementById("msg");
+btn.addEventListener("click",async()=>{
+  const name=document.getElementById("name").value.trim();
+  msg.style.color="var(--err)";
+  if(!name){msg.textContent="اكتب اسمك أولًا.";document.getElementById("name").focus();return}
+  const {out,blank}=collect();
+  if(blank&&!confirm(`لديك ${blank} سؤال بدون إجابة. هل تريد الإرسال؟`))return;
+  btn.disabled=true;msg.style.color="var(--mut)";msg.textContent="جارٍ الإرسال...";
+  const head="📝 امتحان الوحدات 1–3\nالطالب: "+name+"\nالوقت: "+new Date().toLocaleString("ar-EG")+"\nأسئلة بدون إجابة: "+blank;
+  const parts=chunk(head+"\n\n"+out.join("\n\n"),3800);
+  try{
+    for(let i=0;i<parts.length;i++){
+      await tg(parts.length>1?`(${i+1}/${parts.length})\n`+parts[i]:parts[i]);
+    }
+    document.getElementById("exam").hidden=true;
+    document.getElementById("finish").hidden=false;
+    window.scrollTo(0,0);
+  }catch(e){
+    btn.disabled=false;msg.style.color="var(--err)";
+    msg.textContent="تعذر الإرسال: "+e.message+". تحقق من الاتصال ثم أعد المحاولة (إجاباتك ما زالت محفوظة في الصفحة).";
+  }
+});
+</script>
+</body>
+</html>
