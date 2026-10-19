@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اختبار تقييم المستوى الشامل</title>
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--ink:#17203d;--mut:#586086;--acc:#283593;--acc2:#f59e0b;--line:#d8dcef;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#10142b;--card:#1a2042;--ink:#eef0ff;--mut:#a9b0d8;--acc:#9fa8ff;--acc2:#fbbf24;--line:#33396a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",Arial,sans-serif;line-height:1.85}
+header{background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;padding:26px 16px 38px;text-align:center;border-bottom:5px solid var(--acc2)}
+header h1{margin:0;font-size:1.45rem}header p{margin:6px 0 0;opacity:.92}
+main{max-width:780px;margin:-20px auto 0;padding:0 14px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.sec{font-weight:700;color:var(--acc);margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--acc2)}
+.q{font-weight:600;margin-bottom:8px}
+.n{display:inline-block;min-width:30px;padding:0 8px;margin-left:6px;border-radius:6px;background:var(--acc);color:var(--bg);text-align:center;font-size:.85rem}
+label.o{display:block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0;cursor:pointer}
+label.o:has(input:checked){border-color:var(--acc);background:rgba(245,158,11,.15)}
+label.o:focus-within{outline:2px solid var(--acc)}
+.cf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.9rem;color:var(--mut)}
+.cf label{padding:3px 10px;border:1px dashed var(--line);border-radius:999px;cursor:pointer}
+.cf label:has(input:checked){border:1px solid var(--acc);color:var(--ink);background:rgba(40,53,147,.12)}
+input[type=text],textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:120px;resize:vertical}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:var(--acc);color:var(--bg);font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+#msg,#smsg{margin-top:12px;font-weight:600;color:var(--err)}
+ul{padding-right:20px}.done{text-align:center;padding:40px 10px}
+</style>
+</head>
+<body>
+<header><h1>اختبار تقييم المستوى الشامل</h1><p>الفصول الأربعة • 35 سؤال اختيار من متعدد + 5 أسئلة مقالية قصيرة</p></header>
+<main>
+<div id="start" class="card">
+<div class="q">الاسم الكامل</div>
+<input type="text" id="name" autocomplete="name" placeholder="اكتب اسمك">
+<ul>
+<li>هذا اختبار لتحديد نقاط القوة والضعف، وليس للدرجات؛ أجب بصدق دون تخمين متعمد.</li>
+<li>بعد كل سؤال اختيار حدّد مدى ثقتك: <b>متأكد</b> أو <b>متردد</b> أو <b>تخمين</b>.</li>
+<li>الأسئلة مرتبة من الأسهل إلى الأصعب داخل كل فصل، والخيارات تتغير من طالب لآخر.</li>
+<li>تُحسب مدة الاختبار من الضغط على «ابدأ»، ولا تظهر نتيجة بعد الإرسال.</li>
+</ul>
+<button id="go" type="button">ابدأ الاختبار</button><div id="smsg"></div>
+</div>
+<div id="exam" hidden><div id="qs"></div><button id="send" type="button">إرسال الإجابات</button><div id="msg" role="status"></div></div>
+<div id="finish" class="card done" hidden><h2>تم إرسال إجاباتك بنجاح</h2><p>شكرًا لك، سيتم التواصل معك لمناقشة الخطوات التالية. يمكنك إغلاق الصفحة.</p></div>
+</main>
+<script>
+const BOT_TOKEN="7976858796:AAFprF9yRKhdHxokxrHJK6rhLZM8bsOCxpE";
+const CHAT_ID="1840535062";
+
+const CH={1:"الفصل 1: تكنولوجيا المعلومات والمجتمع",2:"الفصل 2: الأمن السيبراني",3:"الفصل 3: تطبيقات الويب",4:"الفصل 4: تصميم الويب والوسائط"};
+const LN={"1-1":"تطور تكنولوجيا المعلومات","1-2":"كيف يعمل الذكاء الاصطناعي","1-3":"الذكاء الاصطناعي في الحياة والصناعة","1-4":"القضايا الأخلاقية","2-1":"التشفير والمصادقة","2-2":"تصميم أمان الشبكات","2-3":"الاستجابة للحوادث وإدارة المخاطر","3-1":"البنية العامة لتطبيقات الويب","3-2":"طرق الاتصال","3-3":"الواجهة الأمامية","4-1":"أنواع الوسائط","4-2":"تصميم المعلومات وتجربة المستخدم","4-3":"تقييم المواقع","4-4":"التحسين التكراري"};
+const DF={e:"سهل",m:"متوسط",h:"صعب"};
+
+// [درس, صعوبة, سؤال, الصحيحة, خطأ1, مفهوم1, خطأ2, مفهوم2, خطأ3, مفهوم3]
+const Q=[
+["1-1","e","أي تقنية ارتبطت بانتشار الإنترنت عبر المحمول في العقد الأول من الألفية؟","الهواتف الذكية","الحواسيب الإلكترونية الأولى (ENIAC)","خلط ترتيب العصور","الحوسبة الكمومية","خلط الناشئ بالتاريخي","الحواسيب الشخصية فقط","خلط ترتيب العصور"],
+["1-1","m","مع تحديات تصغير الترانزستورات (تسرب التيار والتأثيرات الكمومية)، كيف يستمر تحسين الأداء؟","بتعدد الأنوية والمعالجة المتوازية والتصميمات المتخصصة","بتكبير حجم الترانزستورات","فهم خاطئ لقانون مور","بالاعتماد على قانون فيزيائي ثابت","اعتبار قانون مور قانونًا فيزيائيًا","بإلغاء المعالجة المتوازية","فهم خاطئ للمعالجة المتوازية"],
+["1-1","h","أي عبارة عن الحوسبة الكمومية صحيحة؟","قد تسرّع فئات محددة من المسائل وليست بديلًا عامًا","تحل محل الحواسيب التقليدية في كل المهام","المبالغة في قدرات الكمومية","الكيوبت يحمل دائمًا 0 أو 1 فقط","الخلط بين الكيوبت والبت","لا تعتمد على ميكانيكا الكم","خلط في الأساس العلمي"],
+["1-2","e","أي ترتيب يمثل النطاق من الأوسع إلى الأكثر تخصصًا؟","الذكاء الاصطناعي ← التعلم الآلي ← التعلم العميق","التعلم العميق ← التعلم الآلي ← الذكاء الاصطناعي","عكس التسلسل","التعلم الآلي ← الذكاء الاصطناعي ← التعلم العميق","خلط AI بـML","الذكاء التوليدي ← التعلم الآلي ← الذكاء الاصطناعي","عدّ التوليدي أوسع من AI"],
+["1-2","h","أجاب نموذج توليدي بمعلومة تاريخية واثقة لكنها غير موجودة. أي وصف أدق؟","هلوسة تستلزم التحقق من المصدر","خطأ في اتصال الشبكة","خلط الهلوسة بأخطاء الشبكة","تحيز مقصود من المطور","خلط الهلوسة بالتحيز","دليل على أن النموذج يفهم الحقيقة","الثقة العمياء بمخرجات الذكاء الاصطناعي"],
+["1-3","e","أي مثال يمثل نظام توصية؟","اقتراح فيديوهات بحسب تفضيلاتك","تحويل الكلام إلى أوامر عبر مساعد صوتي","خلط التوصية بالمساعد الصوتي","ترجمة نص تلقائيًا","خلط التوصية بالترجمة","فتح الهاتف بالوجه","خلط التوصية بالتعرف على الوجه"],
+["1-3","m","متى يزداد لزوم التحقق البشري من قرار الذكاء الاصطناعي؟","عندما يكون القرار عالي الأثر على الأشخاص","عندما تكون البيانات كبيرة فقط","ربط التحقق بحجم البيانات","عندما يكون النظام سريعًا","ربط التحقق بالسرعة","لا يلزم لأنه يجيد الأنماط","الثقة المطلقة في الذكاء الاصطناعي"],
+["1-4","e","أي مبدأ يعني عدم التمييز ظلمًا ضد أي شخص أو مجموعة؟","العدالة","الشفافية","خلط العدالة بالشفافية","حماية الخصوصية","خلط العدالة بالخصوصية","المساءلة","خلط العدالة بالمساءلة"],
+["1-4","m","نظام توظيف يفضّل فئة معينة لأنه دُرّب على بيانات عمل سابقة. ما التفسير الأرجح؟","بيانات التدريب منحازة فكرر النظام التحيز","النظام يتعمد التمييز","نسبة نية للخوارزمية","المشكلة في سرعة الحاسوب","إرجاع التحيز للعتاد","هلوسة في توليد النص","خلط التحيز بالهلوسة"],
+["1-4","h","بنك لا يعرف مهندسوه سبب رفض النموذج لقرض، ولا يُعرف من يُحاسَب. ما الحل المتكامل؟","XAI مع تحديد أدوار المساءلة","XAI وحده يحدد المسؤول","خلط XAI بالمساءلة","المساءلة وحدها تشرح سبب القرار","خلط المساءلة بـXAI","زيادة بيانات التدريب فقط","حل تقني يتجاهل التفسير والمسؤولية"],
+["2-1","e","أي تشفير يستخدم مفتاحًا سريًا مشتركًا وهو سريع لحماية بيانات الجلسة؟","التشفير المتماثل","التشفير بالمفتاح العام","خلط المتماثل بالمفتاح العام","التوقيع الرقمي","خلط التشفير بالتوقيع","الشهادة الرقمية","خلط التشفير بالشهادة"],
+["2-1","m","أي مجموعة تمثل مصادقة ثنائية العوامل؟","بطاقة دخول + بصمة إصبع","كلمة مرور + سؤال سري","عدّ سؤال المعرفة عاملًا ثانيًا","كلمة مرور + كلمة مرور ثانية","عدّ كلمتي المرور مصادقة ثنائية","كلمة مرور + رقم PIN","عاملا معرفة ليسا ثنائيين"],
+["2-1","h","أي ضابط يدعم التحقق من سلامة الرسالة وهوية المرسل وعدم الإنكار؟","التوقيع الرقمي","الشهادة الرقمية","خلط الشهادة بالتوقيع","التشفير المتماثل","خلط السرية بالتوقيع","HTTPS وحده","اعتبار HTTPS ضمانًا شاملًا"],
+["2-2","e","أي أداة تراقب حركة الشبكة وتسمح أو تمنع وفق قواعد؟","جدار الحماية","VPN","خلط الجدار بالـVPN","DMZ","خلط الجدار بالـDMZ","مكافحة الفيروسات","خلط الجدار بحماية الجهاز"],
+["2-2","m","ما فائدة وضع خادم الويب في المنطقة المعزولة DMZ؟","إذا اخترق قلّ وصول الهجوم إلى الشبكة الداخلية","يمنع أي اختراق","المبالغة في الحماية المطلقة","يشفّر الاتصال بين الفروع","خلط DMZ بالـVPN","يغني عن جدار الحماية","الاعتماد على ضابط واحد"],
+["2-2","h","موظف داخل الشبكة طلب ملفًا حساسًا من جهاز غير معتاد فجرى فحص هويته وسياقه. أي نهج هذا؟","انعدام الثقة","حماية المحيط فقط","افتراض أن الداخل آمن","الدفاع في العمق وحده","خلط الدفاع في العمق بانعدام الثقة","التشفير المتماثل","خلط التشفير بنهج الوصول"],
+["2-3","m","بعد تأكيد انتشار برمجية خبيثة بين أجهزة، ما الإجراء التالي؟","الاحتواء لمنع انتشار الضرر","الاستعادة فورًا","القفز إلى الاستعادة","كتابة الدروس المستفادة","خطأ في ترتيب المراحل","الاستئصال دون عزل","الاستئصال قبل الاحتواء"],
+["2-3","h","أي خطر أعلى أولوية؟ س (تأثير 5، احتمال 2) — ص (4، 4) — ع (5، 1) — ل (2، 5)","ص","س","النظر إلى التأثير الأعلى فقط","ل","النظر إلى الاحتمال الأعلى فقط","ع","خطأ حسابي في الضرب"],
+["3-1","e","أي طبقة تعالج الطلبات وتطبق قواعد التطبيق؟","الواجهة الخلفية","الواجهة الأمامية","خلط الخلفية بالأمامية","قاعدة البيانات","خلط المعالجة بالتخزين","المتصفح","خلط الخلفية بالمتصفح"],
+["3-1","m","عند تعطل سلة التسوق فقط يعرف المهندسون أي طبقة يصلحون. ما سبب ذلك؟","فصل المسؤوليات يعزل المشكلات","إلغاء الحاجة لقاعدة البيانات","فهم خاطئ لدور القاعدة","تسريع الإنترنت","ربط الفصل بالسرعة","جعل التصميم متجاوبًا","خلط الفصل بالتصميم المتجاوب"],
+["3-2","e","أي رمز حالة يعني أن المورد غير موجود بهذا العنوان؟","404","200","خلط النجاح بغياب المورد","500","خلط خطأ الخادم بغياب المورد","GET","خلط الطريقة برمز الحالة"],
+["3-2","m","أي زوج صحيح: عرض سجل الدرجات / إرسال نموذج تسجيل الدخول؟","GET ثم POST عبر HTTPS","POST ثم GET عبر HTTP","عكس GET وPOST","GET ثم POST عبر HTTP","إهمال تشفير البيانات الحساسة","POST لكليهما","عدم التمييز بين الاسترجاع والإرسال"],
+["3-2","h","ما دور API وJSON في تطبيق طقس؟","قواعد لطلب البيانات من الخدمة، وJSON صيغة نصية مهيكلة لتمثيلها","API لغة تنسيق الصفحات وJSON تصميم الواجهة","خلط API بـCSS","API يشفّر الاتصال وJSON يمنع التنصت","خلط API وJSON بالتشفير","JSON بروتوكول بديل عن HTTP","خلط JSON بالبروتوكول"],
+["3-3","e","أي تقنية تضيف التفاعل وتحدّث جزءًا من الشاشة؟","JavaScript","HTML","خلط البنية بالسلوك","CSS","خلط المظهر بالسلوك","JSON","خلط البيانات بالسلوك"],
+["3-3","m","ما فائدة عناصر HTML الدلالية؟","توضح وظيفة أجزاء الصفحة وتفيد الوصول ومحركات البحث","تضمن ترتيبًا أعلى في البحث","اعتبار SEO ضمانًا","تغيّر ألوان الصفحة","خلط الدلالي بـCSS","تعمل على الهاتف فقط","خلط الدلالي بالمتجاوب"],
+["3-3","h","أي عبارة صحيحة عن React وNext.js؟","React مكتبة للمكونات وNext.js إطار مبني عليها","Next.js مكتبة أساس وReact مبني عليه","عكس العلاقة بينهما","كلاهما قاعدة بيانات","خلط الأطر بقواعد البيانات","كلاهما صيغة لتبادل البيانات","خلط الأطر بـJSON"],
+["4-1","e","أي وسيلة تناسب إيصال فيديو إلى عدد كبير من الناس في آن واحد؟","التلفزيون","البريد الإلكتروني","خلط الرسالة المباشرة بالانتشار الواسع","الصحيفة الورقية","إهمال خصائص الوسيلة","الموقع الإلكتروني","خلط التفاصيل بالانتشار"],
+["4-1","m","أي عبارة عن الموقع الإلكتروني صحيحة؟","يمكن تحديثه وإضافة التفاعل إليه لكنه يحتاج غالبًا إلى اتصال","يعمل دائمًا دون اتصال","تجاهل قيد الاتصال","التفاعل فيه باتجاه واحد دائمًا","خلط الموقع بالتلفزيون","هو أفضل وسيلة لكل غرض","افتراض وسيلة مثالية"],
+["4-2","e","أي أداة تحدد مكان المعلومات وأولويتها قبل اختيار الألوان؟","المخطط الهيكلي","شخصية المستخدم","خلط المخطط بالشخصية","اختبار A/B","خلط التخطيط بالاختبار","الألوان والخطوط","البدء بالشكل قبل البنية"],
+["4-2","h","موقع عيادة يصعب استخدامه على ضعيف البصر. أي قرار يخدم إمكانية الوصول؟","تباين واضح بين النص والخلفية دون الاعتماد على اللون وحده","ألوان زاهية كثيرة","خلط الجاذبية بالوصول","تصغير الخط لتتسع المعلومات","إهمال سهولة القراءة","نقل المعلومات المهمة إلى الأسفل","إهمال أولوية المعلومات"],
+["4-3","e","أي مؤشر يقيس إجمالي مرات مشاهدة الصفحة؟","PV","معدل التحويل CVR","خلط PV بـCVR","معدل الارتداد","خلط PV بالارتداد","عدد الأشخاص الفريدين","خلط المشاهدات بالأشخاص"],
+["4-3","m","أي طريقة تجيب عن سؤال «لماذا يغادر المستخدمون؟»","تقييم نوعي مثل اختبار قابلية الاستخدام والمقابلات","عدّ المشاهدات PV","ظن أن الأرقام تفسر السبب","حساب معدل التحويل فقط","الاعتماد على الكمي وحده","اختبار A/B فقط","خلط التقييم باختبار A/B"],
+["4-3","h","ارتفع معدل الارتداد في صفحة. أي استنتاج أدق؟","قد يدل على ضعف التفاعل لكنه لا يفسر السبب وحده","المستخدمون لا يحبون الموقع حتمًا","استنتاج السبب من الرقم وحده","المؤشر يعني حدوث عملية شراء","خلط الارتداد بالتحويل","طريقة حسابه واحدة في كل الأدوات","إهمال اختلاف الأدوات"],
+["4-4","m","ما معنى «تحقق» (Check) في دورة PDCA؟","قياس نتيجة التغيير ومقارنتها بالهدف","وضع خطة التغيير","خلط التحقق بالتخطيط","تنفيذ التغيير","خلط التحقق بالتنفيذ","اعتماد النسخة نهائيًا دون قياس","إهمال القياس"],
+["4-4","h","أي تصميم صحيح لاختبار A/B على زر الشراء؟","تحديد المقياس مسبقًا وتوزيع الزيارات عشوائيًا وعينة كافية","تغيير الزر والعنوان والألوان معًا وتفسير أثر الزر وحده","اختبار حزمة تغييرات وتفسيرها منفردة","الحكم بعد عشر زيارات","عينة غير كافية","اختيار المقياس بعد ظهور النتائج","اختيار المقياس بعد النتائج"]
+];
+const E=[
+["1-3/1-4","اشرح بمثال لماذا لا يكفي أن يكون نظام الذكاء الاصطناعي دقيقًا ليُعدّ مسؤولًا، مستخدمًا مبدأين من: العدالة، الشفافية، حماية الخصوصية، المساءلة."],
+["2-2/2-3","شركة لها موظفون عن بُعد وخادم ويب وقاعدة بيانات. اقترح ثلاث طبقات دفاع مع دور كل منها، ثم اذكر أول خطوتين عند اكتشاف اختراق."],
+["3-1/3-2","تتبّع طلب المستخدم لعرض نتائج بحث في متجر إلكتروني من المتصفح حتى ظهور النتيجة، مع ذكر أسلوب الطلب ورمز الحالة عند النجاح."],
+["4-1/4-2","عيادة تريد إعلام الناس بخدمة جديدة: اختر وسيلتين مع التبرير، ثم اذكر مبدأين من مبادئ CRAP تطبقهما في موقعها."],
+["4-3/4-4","لاحظ متجر ارتفاع معدل الارتداد في صفحة الدفع: اقترح مؤشرًا كميًا وطريقة نوعية لفهم السبب، ثم صف خطوات PDCA لاختبار الحل."]
+];
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const CF=[["sure","متأكد"],["unsure","متردد"],["guess","تخمين"]];
+let order=[],startTime=0;
+const $=id=>document.getElementById(id);
+
+function build(){
+  const qs=$("qs");let k=0,lastCh=0;
+  Q.forEach((x,id)=>{
+    const ch=+x[0][0];
+    if(ch!==lastCh){lastCh=ch;const h=document.createElement("div");h.className="sec";h.textContent=CH[ch];qs.appendChild(h)}
+    const i=k++;
+    const opts=shuffle([{t:x[3],ok:true,tag:""},{t:x[4],ok:false,tag:x[5]},{t:x[6],ok:false,tag:x[7]},{t:x[8],ok:false,tag:x[9]}]);
+    order.push({kind:"mcq",id:id+1,les:x[0],ch,df:x[1],q:x[2],opts});
+    const c=document.createElement("div");c.className="card";
+    const q=document.createElement("div");q.className="q";
+    const n=document.createElement("span");n.className="n";n.textContent=i+1;q.append(n,x[2]);c.appendChild(q);
+    opts.forEach((o,j)=>{const l=document.createElement("label");l.className="o";const r=document.createElement("input");r.type="radio";r.name="q"+i;r.value=j;l.append(r," "+"أبجد"[j]+") "+o.t);c.appendChild(l)});
+    const cf=document.createElement("div");cf.className="cf";cf.append("مدى ثقتك: ");
+    CF.forEach(([v,t])=>{const l=document.createElement("label");const r=document.createElement("input");r.type="radio";r.name="c"+i;r.value=v;l.append(r," "+t);cf.appendChild(l)});
+    c.appendChild(cf);qs.appendChild(c);
+  });
+  const h=document.createElement("div");h.className="sec";h.textContent="أسئلة مقالية قصيرة (اكتب 3 إلى 6 أسطر لكل سؤال)";qs.appendChild(h);
+  E.forEach((x,j)=>{
+    const i=k++;order.push({kind:"essay",les:x[0],q:x[1],j});
+    const c=document.createElement("div");c.className="card";
+    const q=document.createElement("div");q.className="q";const n=document.createElement("span");n.className="n";n.textContent=i+1;q.append(n,x[1]);c.appendChild(q);
+    const a=document.createElement("textarea");a.name="q"+i;a.setAttribute("aria-label","إجابة السؤال "+(i+1));c.appendChild(a);qs.appendChild(c);
+  });
+}
+$("go").addEventListener("click",()=>{
+  if(!$("name").value.trim()){$("smsg").textContent="اكتب اسمك أولًا.";return}
+  build();startTime=Date.now();$("start").hidden=true;$("exam").hidden=false;window.scrollTo(0,0);
+});
+
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const dot=p=>p>=80?"🟢":p>=60?"🟡":"🔴";
+function analyze(){
+  const R={les:{},ch:{},df:{e:[0,0],m:[0,0],h:[0,0]},blank:0,noConf:0,sureWrong:[],luckyGuess:0,wrong:[],essays:[],tot:0,ok:0};
+  order.forEach((x,i)=>{
+    if(x.kind==="essay"){const t=document.querySelector(`[name=q${i}]`).value.trim();R.essays.push({les:x.les,q:x.q,a:t||"(بدون إجابة)"});return}
+    const s=document.querySelector(`[name=q${i}]:checked`),cf=document.querySelector(`[name=c${i}]:checked`);
+    R.tot++;R.les[x.les]=R.les[x.les]||[0,0];R.ch[x.ch]=R.ch[x.ch]||[0,0];
+    R.les[x.les][1]++;R.ch[x.ch][1]++;R.df[x.df][1]++;
+    if(!s){R.blank++;return}
+    if(!cf)R.noConf++;
+    const o=x.opts[+s.value],cv=cf?cf.value:"-";
+    if(o.ok){R.ok++;R.les[x.les][0]++;R.ch[x.ch][0]++;R.df[x.df][0]++;if(cv==="guess")R.luckyGuess++}
+    else{const e={id:x.id,les:x.les,tag:o.tag,cv};R.wrong.push(e);if(cv==="sure")R.sureWrong.push(e)}
+  });
+  return R;
+}
+function report(name,dur,R){
+  const p=pct(R.ok,R.tot);
+  const lvl=p>=85?"متقدم":p>=70?"متوسط مرتفع":p>=50?"متوسط":"يحتاج دعمًا أساسيًا";
+  const cvl={sure:"متأكد",unsure:"متردد",guess:"تخمين","-":"بلا ثقة"};
+  let t="🧭 اختبار تقييم المستوى الشامل\nالطالب: "+name+"\nالوقت: "+new Date().toLocaleString("ar-EG")+"\n⏱ المدة: "+dur+"\nأسئلة اختيار بلا إجابة: "+R.blank;
+  t+="\n\n📊 النتيجة العامة: "+R.ok+" من "+R.tot+" ("+p+"%) — المستوى: "+lvl;
+  t+="\n\n📚 حسب الفصل:\n"+Object.keys(CH).map(c=>{const [a,b]=R.ch[c];return dot(pct(a,b))+" "+CH[c]+": "+a+"/"+b+" ("+pct(a,b)+"%)"}).join("\n");
+  t+="\n\n🎚 حسب الصعوبة:\n"+["e","m","h"].map(d=>DF[d]+": "+R.df[d][0]+"/"+R.df[d][1]+" ("+pct(R.df[d][0],R.df[d][1])+"%)").join("\n");
+  const ls=Object.keys(R.les).sort((a,b)=>pct(...R.les[a])-pct(...R.les[b]));
+  t+="\n\n🔎 الدروس من الأضعف إلى الأقوى:\n"+ls.map(l=>dot(pct(...R.les[l]))+" "+l+" "+LN[l]+": "+R.les[l][0]+"/"+R.les[l][1]).join("\n");
+  const weak=ls.filter(l=>pct(...R.les[l])<60);
+  t+="\n\n🛠 أولويات العلاج: "+(weak.length?weak.map(l=>l+" "+LN[l]).join(" • "):"لا توجد دروس تحت 60%");
+  t+="\n\n🧠 تحليل الثقة:\n• أخطاء بثقة «متأكد» (مفاهيم خاطئة راسخة): "+R.sureWrong.length+"\n• إجابات صحيحة بالتخمين (معرفة غير ثابتة): "+R.luckyGuess+"\n• أخطاء إجمالية: "+R.wrong.length+(R.noConf?"\n• إجابات بلا تحديد ثقة: "+R.noConf:"");
+  if(R.sureWrong.length)t+="\n\n⚠ مفاهيم خاطئة راسخة:\n"+R.sureWrong.map(e=>"• ["+e.les+"] س#"+e.id+": "+e.tag).join("\n");
+  const rest=R.wrong.filter(e=>e.cv!=="sure");
+  if(rest.length)t+="\n\n❌ بقية الأخطاء:\n"+rest.map(e=>"• ["+e.les+"] س#"+e.id+": "+e.tag+" ("+cvl[e.cv]+")").join("\n");
+  t+="\n\n✍ الأسئلة المقالية (تصحيح يدوي):\n\n"+R.essays.map((e,i)=>"م"+(i+1)+" ["+e.les+"] "+e.q.slice(0,60)+"…\n⇢ "+e.a).join("\n\n");
+  return t;
+}
+function chunk(text,n){
+  const parts=[];let cur="";
+  text.split("\n\n").forEach(b=>{
+    while(b.length>n){if(cur){parts.push(cur);cur=""}parts.push(b.slice(0,n));b=b.slice(n)}
+    if((cur+"\n\n"+b).length>n){parts.push(cur);cur=b}else cur=cur?cur+"\n\n"+b:b;
+  });
+  if(cur)parts.push(cur);return parts;
+}
+async function tg(text){
+  const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CHAT_ID,text})});
+  const d=await r.json();if(!d.ok)throw new Error(d.description||"فشل الإرسال");
+}
+const btn=$("send"),msg=$("msg");
+btn.addEventListener("click",async()=>{
+  const R=analyze();
+  if(R.blank&&!confirm(`لديك ${R.blank} سؤال اختيار بدون إجابة. هل تريد الإرسال؟`))return;
+  if(R.noConf&&!confirm(`لم تحدد ثقتك في ${R.noConf} إجابة. هل تريد الإرسال دون تحديدها؟`))return;
+  const sec=Math.round((Date.now()-startTime)/1000);
+  const dur=Math.floor(sec/60)+" دقيقة و"+(sec%60)+" ثانية";
+  btn.disabled=true;msg.style.color="var(--mut)";msg.textContent="جارٍ الإرسال...";
+  const parts=chunk(report($("name").value.trim(),dur,R),3800);
+  try{
+    for(let i=0;i<parts.length;i++)await tg(parts.length>1?`(${i+1}/${parts.length})\n`+parts[i]:parts[i]);
+    $("exam").hidden=true;$("finish").hidden=false;window.scrollTo(0,0);
+  }catch(e){
+    btn.disabled=false;msg.style.color="var(--err)";
+    msg.textContent="تعذر الإرسال: "+e.message+". تحقق من الاتصال وأعد المحاولة (إجاباتك ما زالت في الصفحة).";
+  }
+});
+</script>
+</body>
+</html>
