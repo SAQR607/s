@@ -76,26 +76,74 @@ const N=Q.length,NO=Q.filter(q=>q.k!="e").length,L=["أ","ب","جـ","د"];
 const $=s=>document.querySelector(s);
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=ms=>{const s=Math.round(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
-let S=null,chain=Promise.resolve(),pend=0,fails=[],tm=null;
+const clk=d=>new Date(d).toLocaleTimeString("ar-EG",{hour12:false});
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const lab=(q,j)=>q.k=="t"?["صح","خطأ"][j]:L[j];
+let S=null,tm=null,mid=null,dirty=false,busy=false,bad=false,fails=[],chain=Promise.resolve(),pend=0;
+const API="https://api.telegram.org/bot"+BOT+"/";
 
-/* ---------- Telegram ---------- */
-async function post(text,n){
-  try{
-    const r=await fetch("https://api.telegram.org/bot"+BOT+"/sendMessage",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CHAT,text:text.slice(0,4000)})});
-    const j=await r.json();if(j.ok)return true;
-  }catch(e){}
-  if(n<3){await new Promise(r=>setTimeout(r,1500*(n+1)));return post(text,n+1);}
-  return false;
+/* ---------- Telegram: رسالة واحدة تُعدَّل مع كل حركة ---------- */
+async function call(m,body){
+  for(let n=0;n<4;n++){
+    try{
+      const r=await fetch(API+m,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({chat_id:CHAT},body))});
+      const j=await r.json();
+      if(j.ok)return j;
+      if(/not modified/i.test(j.description||""))return{ok:true};
+      if(j.error_code==429){await wait(((j.parameters&&j.parameters.retry_after)||2)*1000);continue;}
+    }catch(e){}
+    await wait(1500*(n+1));
+  }
+  return null;
 }
-function send(text){
+async function flush(){
+  if(busy)return;busy=true;
+  while(dirty){
+    dirty=false;upd();
+    const t=render().slice(0,4000);let j;
+    if(mid===null){j=await call("sendMessage",{text:t});if(j&&j.result)mid=j.result.message_id;}
+    else j=await call("editMessageText",{message_id:mid,text:t});
+    bad=!j;
+  }
+  busy=false;upd();
+}
+function push(){dirty=true;flush();}
+function send(text){ /* رسائل منفصلة (تفاصيل المقالي فقط) */
   pend++;upd();
-  chain=chain.then(()=>post(text,0)).then(ok=>{pend--;if(!ok)fails.push(text);upd();});
+  chain=chain.then(()=>call("sendMessage",{text:text.slice(0,4000)})).then(j=>{pend--;if(!j)fails.push(text);upd();});
 }
 function upd(){
   document.querySelectorAll(".sts").forEach(e=>{
-    e.className="sts"+(fails.length?" f":"");
-    e.textContent=fails.length?"⚠ تعذر إرسال "+fails.length+" رسالة":pend?"… جارٍ الإرسال":"✓ تم الإرسال";
+    const f=bad||fails.length;
+    e.className="sts"+(f?" f":"");
+    e.textContent=f?"⚠ تعذر الإرسال — سيُعاد مع الحركة التالية":(busy||pend)?"… جارٍ التحديث":"✓ تم تحديث تقرير المعلم";
   });
+}
+function line(j,r){
+  const q=Q[j],ex=(r.aw?" ⚠️"+fmt(r.aw):"");
+  if(q.k=="e"){
+    const x=r.x.replace(/\s+/g," ");
+    return "س"+(j+1)+" ✍️ ⏱"+fmt(r.t)+(r.ps?" 📋لصق"+r.ps:"")+ex+"\n    «"+x.slice(0,110)+(x.length>110?"…":"")+"»\n";
+  }
+  return "س"+(j+1)+" "+(r.ok?"✅ ":"❌ ")+lab(q,r.s)+(r.ok?"":" (الصحيحة: "+lab(q,q.a)+")")+" ⏱"+fmt(r.t)+(r.cc?" 🔄"+r.cc:"")+ex+"\n";
+}
+function score(){return S.rec.filter(r=>r&&r.ok===true).length;}
+function render(){
+  let h="📋 تقرير الامتحان — الفصل 5\n👤 "+S.name+"\n🕒 البدء: "+clk(S.t0)+" | آخر تحديث: "+clk(Date.now())+"\n";
+  if(S.done)h+="🏁 انتهى | الدرجة الموضوعية: "+score()+"/"+NO+" ("+Math.round(score()/NO*100)+"%) | الوقت: "+fmt(S.end-S.t0)+"\n✍️ تفاصيل المقالي والإجابات النموذجية في الرسائل التالية\n";
+  else if(S.closed)h+="🔴 أغلق الصفحة قبل الإنهاء (عند س"+(S.i+1)+")\n";
+  else h+="📍 الآن: س"+(S.i+1)+"/"+N+" | الوقت الكلي: "+fmt(Date.now()-S.t0)+"\n";
+  h+="⚠️ مغادرة الصفحة: "+S.lv+(S.lv?" ("+fmt(S.aw)+")":"")+"\n──────────\n";
+  for(let j=0;j<N;j++){
+    const r=S.rec[j];
+    if(r)h+=line(j,r);
+    else if(j==S.i&&S.run){
+      const q=Q[j];
+      h+="س"+(j+1)+" 🔵 جارٍ الحل"+(q.k!="e"&&S.sel!==null?" (اختار: "+lab(q,S.sel)+")":"")+"\n";
+    }
+  }
+  if(S.log.length)h+="──────────\n"+S.log.slice(-5).join("\n");
+  return h;
 }
 
 /* ---------- Screens ---------- */
@@ -104,7 +152,7 @@ function intro(){
   <h1>امتحان الفصل 5: جمع البيانات وتنقيتها</h1>
   <p class="mu">البرمجة والذكاء الاصطناعي — الصف الثاني الثانوي</p>
   <ul class="r"><li>${NO} سؤالًا موضوعيًا (اختيار من متعدد وصح/خطأ) و${N-NO} أسئلة مقالية.</li>
-  <li>تُرسل كل إجابة إلى المعلم فور الضغط على «التالي»، ولا يمكن الرجوع للسؤال السابق.</li>
+  <li>تُسجَّل حركتك وإجاباتك أولًا بأول في تقرير يراه المعلم، ولا يمكن الرجوع للسؤال السابق.</li>
   <li>يُسجَّل الوقت المستغرق في كل سؤال، ومرات مغادرة الصفحة. لا يوجد إنهاء تلقائي.</li></ul>
   <p><label for="nm">اسمك الكامل</label></p>
   <input id="nm" autocomplete="name" placeholder="مثال: أحمد محمد علي">
@@ -115,8 +163,7 @@ function intro(){
 function start(){
   const n=$("#nm").value.trim();
   if(n.length<3){$("#er").textContent="اكتب اسمك الكامل (3 أحرف على الأقل).";return;}
-  S={name:n,i:0,an:[],ok:[],tm:[],t0:Date.now(),run:true,aw:0,lv:0,sel:null};
-  send("🟢 بدأ الامتحان\n👤 "+n+"\n🕒 "+new Date().toLocaleString("ar-EG")+"\n📋 "+N+" سؤال ("+NO+" موضوعي + "+(N-NO)+" مقالي)");
+  S={name:n,i:0,rec:[],log:[],t0:Date.now(),run:true,aw:0,lv:0,sel:null};
   tm=setInterval(tick,1000);show();
 }
 function show(){
@@ -138,50 +185,46 @@ function show(){
     t.focus();
   }else document.querySelectorAll(".op").forEach(b=>b.onclick=()=>{
     const j=+b.dataset.j;
-    if(S.sel!==null&&S.sel!==j)S.cc++;
+    if(S.sel===j)return;
+    if(S.sel!==null)S.cc++;
     S.sel=j;
     document.querySelectorAll(".op").forEach(x=>x.classList.toggle("s",+x.dataset.j===j));
     $("#nx").disabled=false;
+    push();
   });
-  $("#nx").onclick=next;upd();tick();
+  $("#nx").onclick=next;
+  upd();tick();push();
 }
 function next(){
-  const q=Q[S.i],t=Date.now()-S.qs,e=q.k=="e";
-  let line,ok=null;
-  if(e){line=$("#tx").value.trim();}
-  else{
-    const o=q.k=="t"?["صح","خطأ"]:q.o;
-    ok=S.sel===q.a;
-    line=o[S.sel]+(ok?"\n✅ صحيحة":"\n❌ خاطئة — الصحيحة: "+o[q.a]);
-  }
-  S.ok[S.i]=ok;S.tm[S.i]=t;S.an[S.i]=S.sel;
-  send("📝 "+S.name+" — س"+(S.i+1)+"/"+N+" ("+T+q.l+(e?" · مقالي":"")+")\n❓ "+q.q+"\n💬 "+line+
-    "\n⏱ "+fmt(t)+" | تغيير الإجابة: "+S.cc+" | خارج الصفحة: "+fmt(S.qa)+(e?" | لصق: "+S.ps:"")+
-    "\n⏳ الإجمالي حتى الآن: "+fmt(Date.now()-S.t0));
-  if(e)send("✅ الإجابة النموذجية — س"+(S.i+1)+" ("+S.name+")\n"+q.m+"\n\n📌 قيّم إجابة الطالب أعلاه من 6 درجات.");
+  const q=Q[S.i],t=Date.now()-S.qs,r={t,cc:S.cc,aw:S.qa,ps:S.ps};
+  if(q.k=="e")r.x=$("#tx").value.trim();
+  else{r.s=S.sel;r.ok=S.sel===q.a;}
+  S.rec[S.i]=r;
   if(++S.i<N)show();else finish();
 }
 function finish(){
-  S.run=false;clearInterval(tm);
-  const tot=Date.now()-S.t0,sc=S.ok.filter(x=>x===true).length;
-  const lines=Q.map((q,j)=>"س"+(j+1)+" "+(S.ok[j]===null?"✍️":S.ok[j]?"✅":"❌")+" "+fmt(S.tm[j])).join("\n");
-  send("🏁 انتهى الامتحان — "+S.name+"\n📊 الدرجة الموضوعية: "+sc+"/"+NO+" ("+Math.round(sc/NO*100)+"%)\n⏱ الوقت الكلي: "+fmt(tot)+
-    "\n⚠️ مرات مغادرة الصفحة: "+S.lv+" (إجمالي "+fmt(S.aw)+")\n✍️ الأسئلة المقالية بانتظار التصحيح\n\n"+lines);
+  S.run=false;S.done=true;S.end=Date.now();clearInterval(tm);
+  Q.forEach((q,j)=>{
+    if(q.k!="e")return;
+    send("✍️ س"+(j+1)+" — "+S.name+"\n❓ "+q.q+"\n\n💬 إجابة الطالب:\n"+S.rec[j].x.slice(0,1800)+"\n\n✅ الإجابة النموذجية:\n"+q.m+"\n\n📌 قيّم إجابة الطالب من 6 درجات.");
+  });
+  push();
+  const sc=score();
   $("#app").innerHTML=`<div class="card"><h1>تم إنهاء الامتحان</h1>
   <p class="mu">${esc(S.name)}</p>
   <div class="big">${sc}/${NO}</div><p>درجة الأسئلة الموضوعية. الأسئلة المقالية سيصححها المعلم.</p>
-  <p>الوقت الكلي: <b>${fmt(tot)}</b></p>${review()}
+  <p>الوقت الكلي: <b>${fmt(S.end-S.t0)}</b></p>${review()}
   <p><span class="sts"></span></p>
   <button class="btn sec" id="rt">إعادة إرسال ما تعذر</button></div>`;
-  $("#rt").onclick=()=>{fails.splice(0).forEach(send);upd();};
+  $("#rt").onclick=()=>{fails.splice(0).forEach(send);push();};
   upd();
 }
 function review(){
   if(!SHOW_REVIEW)return"";
   return"<h2 style='font-size:19px;margin:18px 0 8px'>تصحيح الأسئلة الموضوعية</h2>"+Q.map((q,j)=>{
     if(q.k=="e")return"";
-    const o=q.k=="t"?["صح","خطأ"]:q.o;
-    return`<div class="rv ${S.ok[j]?"y":"n"}"><b>س${j+1} ${S.ok[j]?"✅ صحيحة":"❌ خاطئة"}</b><br>${q.q}<br><span class="mu">إجابتك: ${o[S.an[j]]}${S.ok[j]?"":" — الصحيحة: "+o[q.a]}</span></div>`;
+    const o=q.k=="t"?["صح","خطأ"]:q.o,r=S.rec[j];
+    return`<div class="rv ${r.ok?"y":"n"}"><b>س${j+1} ${r.ok?"✅ صحيحة":"❌ خاطئة"}</b><br>${q.q}<br><span class="mu">إجابتك: ${o[r.s]}${r.ok?"":" — الصحيحة: "+o[q.a]}</span></div>`;
   }).join("");
 }
 function tick(){
@@ -200,13 +243,17 @@ document.addEventListener("visibilitychange",()=>{
     const d=Date.now()-hs;hs=0;
     if(d<1500)return;
     S.qa+=d;S.aw+=d;S.lv++;
-    send("⚠️ "+S.name+" غادر الصفحة "+fmt(d)+" أثناء س"+(S.i+1));
+    S.log.push("⚠️ غاب "+fmt(d)+" أثناء س"+(S.i+1)+" ("+clk(Date.now())+")");
+    push();
   }
 });
 addEventListener("beforeunload",e=>{if(S&&S.run){e.preventDefault();e.returnValue="";}});
 addEventListener("pagehide",()=>{
-  if(S&&S.run)navigator.sendBeacon("https://api.telegram.org/bot"+BOT+"/sendMessage",
-    new Blob([JSON.stringify({chat_id:CHAT,text:"🔴 "+S.name+" أغلق الصفحة قبل إنهاء الامتحان عند س"+(S.i+1)})],{type:"application/json"}));
+  if(!S||!S.run)return;
+  S.closed=true;S.run=false;
+  const b={chat_id:CHAT,text:render().slice(0,4000)};
+  if(mid!==null)b.message_id=mid;
+  navigator.sendBeacon(API+(mid!==null?"editMessageText":"sendMessage"),new Blob([JSON.stringify(b)],{type:"application/json"}));
 });
 intro();
 </script>
